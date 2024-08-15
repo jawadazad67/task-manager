@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task Manager</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Task Manager</h1>
+        <div id="tasks"></div>
+        <form id="task-form">
+            <input type="text" id="task-title" placeholder="Title" required>
+            <input type="text" id="task-description" placeholder="Description">
+            <button type="submit">Add Task</button>
+        </form>
+    </div>
+    <script>
+        async function fetchTasks() {
+            const response = await fetch('/api/tasks');
+            const tasks = await response.json();
+            const tasksContainer = document.getElementById('tasks');
+            tasksContainer.innerHTML = '';
+            tasks.forEach(task => {
+                const taskElement = document.createElement('div');
+                taskElement.className = 'task' + (task.completed ? ' completed' : '');
+                taskElement.innerHTML = `
+                    <strong>${task.title}</strong>
+                    <p>${task.description}</p>
+                    <small>${task.completed ? 'Completed' : 'Pending'}</small>
+                    <button onclick="deleteTask('${task._id}')">Delete</button>
+                    <button onclick="toggleComplete('${task._id}', ${task.completed})">${task.completed ? 'Mark as Incomplete' : 'Mark as Complete'}</button>
+                `;
+                tasksContainer.appendChild(taskElement);
+            });
+        }
+
+        async function addTask(event) {
+            event.preventDefault();
+            const title = document.getElementById('task-title').value;
+            const description = document.getElementById('task-description').value;
+            await fetch('/api/tasks', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ title, description })
+            });
+            fetchTasks();
+        }
+
+        async function deleteTask(taskId) {
+            await fetch(`/api/tasks/${taskId}`, { method: 'DELETE' });
+            fetchTasks();
+        }
+
+        async function toggleComplete(taskId, currentStatus) {
+            await fetch(`/api/tasks/${taskId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ completed: !currentStatus })
+            });
+            fetchTasks();
+        }
+
+        document.getElementById('task-form').addEventListener('submit', addTask);
+        fetchTasks();
+    </script>
+</body>
+</html>
